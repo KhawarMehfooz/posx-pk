@@ -1,14 +1,76 @@
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { spawn } = require("child_process");
 
 const isDev = process.env.NODE_ENV === 'development'
+
+let backendProcess = null;
 
 if (isDev) {
     require('electron-reload')(__dirname, {
         electron: path.join(__dirname, '..', 'node_modules', '.bin', 'electron'),
         hardResetMethod: 'exit'
     })
+}
+
+function startServer() {
+    return new Promise((resolve, reject) => {
+        const backendPath = path.join(__dirname, "..", "backend", "dist", "main.js");
+
+        if (isDev) {
+            // In development, use npm run start:dev
+            const isWindows = process.platform === "win32";
+            const npmCmd = isWindows ? "npm.cmd" : "npm";
+            backendProcess = spawn(npmCmd, ["run", "start:dev"], {
+                cwd: path.join(__dirname, "..", "backend"),
+                env: { ...process.env, PORT: "3000" },
+                stdio: "inherit",
+                shell: true
+            });
+        } else {
+            // In production, run the compiled JavaScript
+            backendProcess = spawn("node", [backendPath], {
+                cwd: path.join(__dirname, "..", "backend"),
+                env: { ...process.env, PORT: "3000" },
+                stdio: "inherit"
+            });
+        }
+
+        backendProcess.on("error", (error) => {
+            console.error("Failed to start backend:", error);
+            reject(error);
+        });
+
+        // Wait a bit for the server to start
+        setTimeout(() => {
+            // Check if backend is responding
+            const http = require("http");
+            const req = http.get("http://localhost:3000/api/hello", (res) => {
+                if (res.statusCode === 200) {
+                    console.log("Backend server started successfully");
+                    resolve();
+                } else {
+                    reject(new Error(`Backend returned status code: ${res.statusCode}`));
+                }
+            });
+
+            req.on("error", (err) => {
+                // Retry after a bit more time
+                setTimeout(() => {
+                    const retryReq = http.get("http://localhost:3000/api/hello", (retryRes) => {
+                        if (retryRes.statusCode === 200) {
+                            console.log("Backend server started successfully (retry)");
+                            resolve();
+                        } else {
+                            reject(new Error(`Backend returned status code: ${retryRes.statusCode}`));
+                        }
+                    });
+                    retryReq.on("error", reject);
+                }, 2000);
+            });
+        }, 3000);
+    });
 }
 
 function createWindow() {
@@ -42,6 +104,37 @@ function createWindow() {
     })
 }
 
-app.whenReady().then(() => {
-    createWindow();
+function cleanup() {
+    if (backendProcess) {
+        console.log("Stopping backend server...");
+        backendProcess.kill();
+        backendProcess = null;
+    }
+}
+
+app.whenReady().then(async () => {
+    try {
+        await startServer()
+        createWindow();
+    } catch (error) {
+        console.error("Failed to start application: ", error)
+        app.quit()
+    }
 })
+
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+        cleanup();
+        app.quit();
+    }
+});
+
+app.on("before-quit", () => {
+    cleanup();
+});
+
+app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
+});
