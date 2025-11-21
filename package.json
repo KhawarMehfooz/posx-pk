@@ -1,0 +1,26 @@
+{
+  "name": "posx-pk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhawarMehfooz/posx-pk.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KhawarMehfooz/posx-pk/issues"
+  },
+  "homepage": "https://github.com/KhawarMehfooz/posx-pk#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.3",
+    "electron-builder": "^26.0.12"
+  }
+}
