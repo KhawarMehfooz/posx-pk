@@ -12,14 +12,67 @@
     "start": "npm run build:frontend && npm run build:backend &&  electron .",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
-    "install:all": "npm install && cd frontend && npm install"
+    "build:all": "npm run build:frontend && npm run build:backend",
+    "install:all": "npm install && cd frontend && npm install",
+    "dist": "npm run build:all && electron-builder",
+    "logs": "node view-logs.js"
+  },
+  "build": {
+    "appId": "pk.posx.pos",
+    "productName": "POS",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "KhawarMehfooz",
+        "repo": "posx-pk"
+      }
+    ],
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "frontend/dist/**/*",
+      "backend/dist/**/*",
+      "backend/node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "POS",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "warningsAsErrors": false,
+      "installerLanguages": [
+        "en_US"
+      ],
+      "displayLanguageSelector": false,
+      "multiLanguageInstaller": false
+    }
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/KhawarMehfooz/posx-pk.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Khawar Mehfooz",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/KhawarMehfooz/posx-pk/issues"
@@ -32,5 +85,8 @@
     "electron-builder": "^26.0.12",
     "electron-reload": "^2.0.0-alpha.1",
     "wait-on": "^9.0.3"
+  },
+  "dependencies": {
+    "winston": "^3.18.3"
   }
 }

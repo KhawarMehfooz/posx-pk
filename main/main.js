@@ -2,10 +2,35 @@ const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require("child_process");
+const { createLogger } = require('./logger');
+
+let logger = null;
+
+app.whenReady().then(() => {
+    logger = createLogger();
+});
 
 const isDev = process.env.NODE_ENV === 'development'
 
 let backendProcess = null;
+
+// Catch uncaught exceptions
+process.on('uncaughtException', (error) => {
+    if (logger) {
+        logger.error('Uncaught Exception:', error);
+    } else {
+        console.error('Uncaught Exception (before logger init):', error);
+    }
+});
+
+// Catch unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    if (logger) {
+        logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    } else {
+        console.error('Unhandled Rejection (before logger init):', reason);
+    }
+});
 
 if (isDev) {
     require('electron-reload')(__dirname, {
@@ -16,62 +41,120 @@ if (isDev) {
 
 function startServer() {
     return new Promise((resolve, reject) => {
+        logger.info('Starting backend server...');
         const backendPath = path.join(__dirname, "..", "backend", "dist", "main.js");
+
+        logger.info(`Backend path: ${backendPath}`);
+        logger.info(`Is development: ${isDev}`);
 
         if (isDev) {
             // In development, use npm run start:dev
             const isWindows = process.platform === "win32";
             const npmCmd = isWindows ? "npm.cmd" : "npm";
+            const backendDir = path.join(__dirname, "..", "backend");
+
+            logger.info(`Spawning development backend: ${npmCmd} run start:dev`);
+            logger.info(`Backend directory: ${backendDir}`);
+
             backendProcess = spawn(npmCmd, ["run", "start:dev"], {
-                cwd: path.join(__dirname, "..", "backend"),
+                cwd: backendDir,
                 env: { ...process.env, PORT: "3000" },
                 stdio: "inherit",
                 shell: true
             });
-        } else {
-            // In production, run the compiled JavaScript
-            backendProcess = spawn("node", [backendPath], {
-                cwd: path.join(__dirname, "..", "backend"),
-                env: { ...process.env, PORT: "3000" },
-                stdio: "inherit"
+
+            backendProcess.on("error", (error) => {
+                logger.error("Failed to start backend process:", error);
+                reject(error);
             });
+
+            backendProcess.on("exit", (code, signal) => {
+                if (code !== null) {
+                    logger.warn(`Backend process exited with code: ${code}`);
+                }
+                if (signal !== null) {
+                    logger.warn(`Backend process killed with signal: ${signal}`);
+                }
+            });
+        } else {
+            // In production, run the backend directly in the same process
+            logger.info(`Checking if backend build exists: ${backendPath}`);
+
+            if (!fs.existsSync(backendPath)) {
+                const error = new Error(`Backend build not found at: ${backendPath}`);
+                logger.error(error.message);
+                reject(error);
+                return;
+            }
+
+            logger.info(`Starting production backend directly in Electron process`);
+
+            try {
+                // Set environment variable for backend
+                process.env.PORT = "3000";
+
+                // Add backend node_modules to the module search path
+                const backendNodeModules = path.join(__dirname, "..", "backend", "node_modules");
+                if (fs.existsSync(backendNodeModules)) {
+                    module.paths.push(backendNodeModules);
+                    logger.info(`Added backend node_modules to path: ${backendNodeModules}`);
+                }
+
+                // Require and run the backend directly
+                require(backendPath);
+
+                logger.info("Backend loaded successfully");
+            } catch (error) {
+                logger.error("Failed to load backend:", error);
+                reject(error);
+                return;
+            }
         }
 
-        backendProcess.on("error", (error) => {
-            console.error("Failed to start backend:", error);
-            reject(error);
-        });
-
         // Wait a bit for the server to start
+        logger.info('Waiting 3 seconds for backend to start...');
         setTimeout(() => {
             // Check if backend is responding
+            logger.info('Checking if backend is responding at http://localhost:3000/api/hello');
             const http = require("http");
             const req = http.get("http://localhost:3000/api/hello", (res) => {
+                logger.info(`Backend responded with status code: ${res.statusCode}`);
                 if (res.statusCode === 200) {
-                    console.log("Backend server started successfully");
+                    logger.info("Backend server started successfully");
                     resolve();
                 } else {
-                    reject(new Error(`Backend returned status code: ${res.statusCode}`));
+                    const error = new Error(`Backend returned status code: ${res.statusCode}`);
+                    logger.error(error.message);
+                    reject(error);
                 }
             });
 
             req.on("error", (err) => {
+                logger.warn('First connection attempt failed:', err.message);
+                logger.info('Retrying backend connection in 2 seconds...');
                 // Retry after a bit more time
                 setTimeout(() => {
                     const retryReq = http.get("http://localhost:3000/api/hello", (retryRes) => {
+                        logger.info(`Backend responded (retry) with status code: ${retryRes.statusCode}`);
                         if (retryRes.statusCode === 200) {
-                            console.log("Backend server started successfully (retry)");
+                            logger.info("Backend server started successfully (retry)");
                             resolve();
                         } else {
-                            reject(new Error(`Backend returned status code: ${retryRes.statusCode}`));
+                            const error = new Error(`Backend returned status code: ${retryRes.statusCode}`);
+                            logger.error(error.message);
+                            reject(error);
                         }
                     });
-                    retryReq.on("error", reject);
+                    retryReq.on("error", (retryErr) => {
+                        logger.error('Backend connection retry failed:', retryErr);
+                        reject(retryErr);
+                    });
                 }, 2000);
             });
         }, 3000);
     });
 }
+
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -91,16 +174,29 @@ function createWindow() {
     } else {
         const frontendPath = path.join(__dirname, "..", "frontend", "dist", "index.html")
         if (fs.existsSync(frontendPath)) {
+            console.log("Loading frontend from:", frontendPath)
             win.loadFile(frontendPath)
         } else {
             console.error("Frontend build not found. Please run: npm run build:frontend")
+            logger.error("Frontend build not found. Please run: npm run build:frontend")
             win.loadURL("data:text/html,<h1>Frontend not built</h1><p>Please run: npm run build:frontend</p>")
         }
     }
 
+    // Log console messages from renderer process
+    win.webContents.on('console-message', (event) => {
+        const lineInfo = event.line !== undefined ? `line ${event.line}` : ''
+        console.log(`Renderer console [${event.level}]:`, event.message, `at ${event.sourceId}`, lineInfo)
+    })
+
     win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+        logger.error("Failed to load:", validatedURL, errorCode, errorDescription)
         console.error("Failed to load:", validatedURL, errorCode, errorDescription)
         win.webContents.loadURL(`data:text/html,<h1>Failed to load</h1><p>Error: ${errorDescription}</p><p>URL: ${validatedURL}</p>`)
+    })
+
+    win.webContents.on('did-finish-load', () => {
+        console.log('Page finished loading')
     })
 }
 
@@ -118,6 +214,7 @@ app.whenReady().then(async () => {
         createWindow();
     } catch (error) {
         console.error("Failed to start application: ", error)
+        logger.error("Failed to start application: ", error)
         app.quit()
     }
 })
