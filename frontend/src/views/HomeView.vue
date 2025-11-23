@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import axios from "axios";
 import { ref } from "vue";
+import Button from "primevue/button"
+
 
 const serverResponse = ref("");
 
 async function testServer() {
   try {
     const res = await axios.get("http://localhost:3000/api/hello");
-    serverResponse.value = res.data; 
+    serverResponse.value = res.data;
     console.log(res.data);
   } catch (err) {
     console.error(err);
@@ -18,11 +20,11 @@ async function testServer() {
 
 <template>
   <main>
-      <h1 class="text-5xl text-red-600 font-bold underline">
-    Hello world!
-  </h1>
+    <h1 class="text-5xl text-red-600 font-bold underline">
+      Hello world!
+    </h1>
 
-    <button @click="testServer">Test Server</button>
+    <Button label="Test Server" @click="testServer" />
 
     <!-- server response -->
     <p v-if="serverResponse">{{ serverResponse }}</p>
