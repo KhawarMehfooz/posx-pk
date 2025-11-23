@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const { spawn } = require("child_process");
 const { createLogger } = require('./logger');
+const { setupAutoUpdater } = require("./updater");
 
 let logger = null;
 
@@ -37,6 +38,43 @@ if (isDev) {
         electron: path.join(__dirname, '..', 'node_modules', '.bin', 'electron'),
         hardResetMethod: 'exit'
     })
+}
+
+function createAppMenu(win) {
+    const template = [
+        {
+            label: "Help",
+            submenu: [
+                {
+                    label: "Check for Updates...",
+                    click: () => {
+                        const { autoUpdater, setIsInitialCheck, handleManualCheckResult, resetUpToDateFlag } = require("./updater");
+                        // Mark as manual check so errors and messages will be shown to user
+                        setIsInitialCheck(false);
+                        resetUpToDateFlag(); // Reset flag for this manual check
+                        autoUpdater.checkForUpdates()
+                            .then((updateInfo) => {
+                                // If checkForUpdates resolves with null, no update is available
+                                // Handle this as a fallback if the event doesn't fire
+                                // Use setTimeout to give the event a chance to fire first
+                                setTimeout(() => {
+                                    if (!updateInfo && handleManualCheckResult) {
+                                        handleManualCheckResult(win);
+                                    }
+                                }, 500);
+                            })
+                            .catch((err) => {
+                                // Error will be handled by the error event handler
+                                console.error("Manual update check failed:", err);
+                            });
+                    }
+                }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
 }
 
 function startServer() {
@@ -198,6 +236,10 @@ function createWindow() {
     win.webContents.on('did-finish-load', () => {
         console.log('Page finished loading')
     })
+
+    setupAutoUpdater(win);
+
+    createAppMenu(win);
 }
 
 function cleanup() {

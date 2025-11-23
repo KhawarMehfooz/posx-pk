@@ -1,6 +1,6 @@
 {
   "name": "posx-pk",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "main/main.js",
   "scripts": {
@@ -55,7 +55,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "POS",
-      "deleteAppDataOnUninstall": false,
+      "deleteAppDataOnUninstall": true,
       "runAfterFinish": true,
       "menuCategory": false,
       "artifactName": "${productName}-Setup-${version}.${ext}",
@@ -87,6 +87,8 @@
     "wait-on": "^9.0.3"
   },
   "dependencies": {
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2",
     "winston": "^3.18.3"
   }
 }
