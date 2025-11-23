@@ -3,7 +3,6 @@ import axios from "axios";
 import { ref } from "vue";
 import Button from "primevue/button"
 
-
 const serverResponse = ref("");
 
 async function testServer() {
@@ -16,6 +15,15 @@ async function testServer() {
     serverResponse.value = "Error contacting server";
   }
 }
+
+const crash = () => {
+  const result = 10 / "abc"; // NaN → not a throw
+  console.log(result);
+
+  if (isNaN(result)) {
+    throw new Error("Math went wrong: division result is NaN");
+  }
+};
 </script>
 
 <template>
@@ -25,6 +33,7 @@ async function testServer() {
     </h1>
 
     <Button label="Test Server" @click="testServer" />
+    <Button label="Crash" @click="crash" />
 
     <!-- server response -->
     <p v-if="serverResponse">{{ serverResponse }}</p>
