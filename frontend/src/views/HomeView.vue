@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import axios from "axios";
 import { ref } from "vue";
-import HelloWorld from '@/components/HelloWorld.vue';
 
 const serverResponse = ref("");
 
@@ -19,7 +18,9 @@ async function testServer() {
 
 <template>
   <main>
-    <HelloWorld msg="You did it!" />
+      <h1 class="text-5xl text-red-600 font-bold underline">
+    Hello world!
+  </h1>
 
     <button @click="testServer">Test Server</button>
 
