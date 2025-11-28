@@ -4,7 +4,7 @@
   <img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" />
 </p>
 
-A modern backend built with **NestJS**, **Prisma**, **SQLite**, and **JWT authentication**.
+A modern backend built with **NestJS**, **Prisma ORM**, **SQLite database**, and **JWT authentication**, using a global **JSend response format** for consistent API output.
 
 ---
 
@@ -18,13 +18,13 @@ npm install
 
 ### 2️⃣ Copy environment file
 
-Duplicate the example env file:
+Duplicate the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in:
+Fill in required values:
 
 ```
 DATABASE_URL="file:./dev.db"
@@ -33,13 +33,13 @@ ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="admin123"
 ```
 
-### 3️⃣ Generate Prisma client
+### 3️⃣ Generate the Prisma client
 
 ```bash
 npx prisma generate
 ```
 
-### 4️⃣ Run the seed command (creates default ADMIN user)
+### 4️⃣ Seed the database (creates default ADMIN user)
 
 ```bash
 npm run seed
@@ -63,14 +63,120 @@ npm run start:prod
 
 ---
 
-# 🔐 Authentication
+# 🔐 Authentication Endpoints
 
-* `/auth/login` → Login using email & password
-* `/auth/me` → Fetch logged-in user (JWT required)
+## **POST /auth/login**
+
+Authenticate using email + password and receive a JWT token.
+
+### 📤 Request Body
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+```
+
+### 📥 JSend Success Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR..."
+  }
+}
+```
+
+### ❗ JSend Error Response (invalid credentials)
+
+```json
+{
+  "status": "error",
+  "message": "Invalid credentials",
+  "statusCode": 401,
+  "path": "/auth/login"
+}
+```
 
 ---
 
-# 🧪 Tests
+## **GET /auth/me**
+
+Fetch the authenticated user's info using JWT.
+
+### 📤 Headers
+
+```
+Authorization: Bearer <token>
+```
+
+### 📥 JSend Success Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "email": "admin@example.com",
+    "role": "ADMIN",
+    "createdAt": "2025-11-28T17:52:10.123Z"
+  }
+}
+```
+
+### ❗ JSend Error Response (missing/invalid token)
+
+```json
+{
+  "status": "error",
+  "message": "Invalid token",
+  "statusCode": 401,
+  "path": "/auth/me"
+}
+```
+
+---
+
+# 📘 API Response Format (JSend)
+
+This backend uses **global interceptors and filters** to enforce the standardized JSend structure.
+
+### ✔ **Success**
+
+```json
+{
+  "status": "success",
+  "data": { ... }
+}
+```
+
+### ✔ **Fail (validation / client errors)**
+
+```json
+{
+  "status": "error",
+  "message": "Password is required",
+  "statusCode": 400,
+  "path": "/auth/login"
+}
+```
+
+### ✔ **Error (internal / unhandled)**
+
+```json
+{
+  "status": "error",
+  "message": "Internal server error",
+  "statusCode": 500,
+  "path": "/any-endpoint"
+}
+```
+
+---
+
+# 🧪 Testing
 
 ```bash
 npm run test
@@ -82,7 +188,7 @@ npm run test:cov
 
 # 📘 Useful Commands
 
-### Open Prisma Studio (DB UI)
+### Open Prisma Studio (Database UI)
 
 ```bash
 npx prisma studio
