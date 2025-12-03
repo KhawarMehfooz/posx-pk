@@ -10,13 +10,13 @@ A modern backend built with **NestJS**, **Prisma ORM**, **SQLite database**, and
 
 # 📦 Project Setup
 
-### 1️⃣ Install dependencies
+### Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2️⃣ Copy environment file
+### Copy environment file
 
 Duplicate the example environment file:
 
@@ -33,13 +33,19 @@ ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="admin123"
 ```
 
-### 3️⃣ Generate the Prisma client
+### Generate the Prisma client
 
 ```bash
 npx prisma generate
 ```
 
-### 4️⃣ Seed the database (creates default ADMIN user)
+### Run Migration
+
+```bash
+npx prisma migrate dev
+```
+
+### Seed the database (creates default ADMIN user)
 
 ```bash
 npm run seed
