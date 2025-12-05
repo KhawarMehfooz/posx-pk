@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { RouterView, useRouter } from "vue-router";
 
 import Button from "primevue/button";
@@ -32,6 +32,14 @@ const settingsItems = [
     command: () => router.push("/settings")
   }
 ];
+
+// Hide Menu on some pages
+const hideMenuOn = ['/login', '/register','/pos', "/staff/login"]
+const showMenu = computed(() => {
+  return !hideMenuOn.includes(router.currentRoute.value.path)
+})
+
+
 </script>
 
 <template>
@@ -43,6 +51,7 @@ const settingsItems = [
         'flex flex-col bg-white border-r transition-all duration-300 overflow-hidden',
         collapsed ? 'w-16' : 'w-64'
       ]"
+      v-if="showMenu"
     >
 
       <!-- Sidebar Title / App Name -->
@@ -79,7 +88,7 @@ const settingsItems = [
     <div class="flex flex-col flex-1">
 
       <!-- TOP BAR -->
-      <header class="h-14 flex items-center bg-white border-b px-4">
+      <header class="h-14 flex items-center bg-white border-b px-4" v-if="showMenu">
 
         <!-- Collapse Sidebar Button -->
         <Button
