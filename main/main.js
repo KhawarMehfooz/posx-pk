@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require("child_process");
@@ -14,6 +14,33 @@ app.whenReady().then(() => {
 const isDev = process.env.NODE_ENV === 'development'
 
 let backendProcess = null;
+
+// setup electron store
+let store;
+const loadStore = async () => {
+    const { default: Store } = await import("electron-store")
+    store = new Store()
+}
+
+function saveUserData(userData) {
+    if (store) {
+        store.set("userData", JSON.stringify(userData));
+    } else {
+        console.error("Store is not initialized");
+    }
+}
+
+function getUserData() {
+    const userData = store.get("userData");
+    if (userData) {
+        return JSON.parse(userData);
+    }
+    return null;
+}
+
+function deleteUserData() {
+    store.delete("userData");
+}
 
 // Catch uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -70,7 +97,16 @@ function createAppMenu(win) {
                     }
                 }
             ]
-        }
+        },
+        {
+            label: "Toggle Developer Tools",
+            accelerator: process.platform === "darwin" ? "Cmd+Alt+I" : "Ctrl+Shift+I",
+            click: () => {
+                if (win.webContents) {
+                    win.webContents.toggleDevTools();
+                }
+            },
+        },
     ];
 
     const menu = Menu.buildFromTemplate(template);
@@ -80,7 +116,7 @@ function createAppMenu(win) {
 function startServer() {
     return new Promise((resolve, reject) => {
         logger.info('Starting backend server...');
-        const backendPath = path.join(__dirname, "..", "backend", "dist", "main.js");
+        const backendPath = path.join(__dirname, "..", "backend", "dist", "src", "main.js");
 
         logger.info(`Backend path: ${backendPath}`);
         logger.info(`Is development: ${isDev}`);
@@ -153,9 +189,9 @@ function startServer() {
         logger.info('Waiting 3 seconds for backend to start...');
         setTimeout(() => {
             // Check if backend is responding
-            logger.info('Checking if backend is responding at http://localhost:3000/api/hello');
+            logger.info('Checking if backend is responding at http://localhost:3000/');
             const http = require("http");
-            const req = http.get("http://localhost:3000/api/hello", (res) => {
+            const req = http.get("http://localhost:3000/", (res) => {
                 logger.info(`Backend responded with status code: ${res.statusCode}`);
                 if (res.statusCode === 200) {
                     logger.info("Backend server started successfully");
@@ -252,6 +288,7 @@ function cleanup() {
 
 app.whenReady().then(async () => {
     try {
+        await loadStore();
         await startServer()
         createWindow();
     } catch (error) {
@@ -276,4 +313,16 @@ app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+ipcMain.handle("save-user-data", (_, userData) => {
+    saveUserData(userData);
+});
+
+ipcMain.handle("get-user-data", () => {
+    return getUserData();
+});
+
+ipcMain.handle("delete-user-data", () => {
+    deleteUserData();
 });
