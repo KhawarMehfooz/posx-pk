@@ -1,10 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from "vue";
 import { RouterView, useRouter } from "vue-router";
 
 import Button from "primevue/button";
 import Menu from "primevue/menu";
 import Divider from "primevue/divider";
+
+import { logoutUser } from "@/services/authService";
 
 const router = useRouter();
 
@@ -30,11 +32,23 @@ const settingsItems = [
     label: "Settings",
     icon: "pi pi-cog",
     command: () => router.push("/settings")
-  }
+  },
+  {
+    label: "Logout",
+    icon: "pi pi-sign-out",
+    command: async () => {
+      try {
+        await logoutUser();
+        router.push("/login");
+      } catch (err) {
+        console.error(err);
+      }
+    },
+  },
 ];
 
 // Hide Menu on some pages
-const hideMenuOn = ['/login', '/register','/pos', "/staff/login"]
+const hideMenuOn = ['/login', '/register', '/pos', "/staff/login"]
 const showMenu = computed(() => {
   return !hideMenuOn.includes(router.currentRoute.value.path)
 })
@@ -46,41 +60,30 @@ const showMenu = computed(() => {
   <div class="flex h-screen">
 
     <!-- SIDEBAR -->
-    <aside
-      :class="[
-        'flex flex-col bg-white border-r transition-all duration-300 overflow-hidden',
-        collapsed ? 'w-16' : 'w-64'
-      ]"
-      v-if="showMenu"
-    >
+    <aside :class="[
+      'flex flex-col bg-white border-r transition-all duration-300 overflow-hidden',
+      collapsed ? 'w-16' : 'w-64'
+    ]" v-if="showMenu">
 
       <!-- Sidebar Title / App Name -->
       <div class="h-14 flex items-center px-4 border-b">
-        <span
-          :class="[
-            'font-semibold whitespace-nowrap overflow-hidden transition-all',
-            collapsed ? 'opacity-0 w-0' : 'opacity-100 w-full'
-          ]"
-        >
+        <span :class="[
+          'font-semibold whitespace-nowrap overflow-hidden transition-all',
+          collapsed ? 'opacity-0 w-0' : 'opacity-100 w-full'
+        ]">
           POSx
         </span>
       </div>
 
       <!-- MAIN NAV MENU -->
       <div class="flex-1 px-2 pt-4">
-        <Menu
-          :model="menuItems"
-          :class="collapsed ? 'p-menu-collapsed' : ''"
-        />
+        <Menu :model="menuItems" :class="collapsed ? 'p-menu-collapsed' : ''" />
       </div>
 
       <!-- BOTTOM SETTINGS -->
       <div class="px-2 pb-4">
         <Divider />
-        <Menu
-          :model="settingsItems"
-          :class="collapsed ? 'p-menu-collapsed' : ''"
-        />
+        <Menu :model="settingsItems" :class="collapsed ? 'p-menu-collapsed' : ''" />
       </div>
     </aside>
 
@@ -91,13 +94,7 @@ const showMenu = computed(() => {
       <header class="h-14 flex items-center bg-white border-b px-4" v-if="showMenu">
 
         <!-- Collapse Sidebar Button -->
-        <Button
-          icon="pi pi-bars"
-          class="mr-4"
-          severity="secondary"
-          text
-          @click="toggleSidebar"
-        />
+        <Button icon="pi pi-bars" class="mr-4" severity="secondary" text @click="toggleSidebar" />
 
         <h1 class="text-lg font-medium">Top Bar</h1>
       </header>
@@ -116,6 +113,7 @@ const showMenu = computed(() => {
 .p-menu-collapsed .p-menuitem-text {
   display: none;
 }
+
 .p-menu-collapsed .p-menuitem-icon {
   margin-right: 0 !important;
 }
