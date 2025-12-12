@@ -204,7 +204,7 @@ function startServer() {
             });
 
             req.on("error", (err) => {
-                logger.warn('First connection attempt failed:', err.message);
+                logger.warn('First connection attempt failed:', err);
                 logger.info('Retrying backend connection in 2 seconds...');
                 // Retry after a bit more time
                 setTimeout(() => {

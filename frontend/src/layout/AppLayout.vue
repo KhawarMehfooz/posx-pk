@@ -61,12 +61,12 @@ const showMenu = computed(() => {
 
     <!-- SIDEBAR -->
     <aside :class="[
-      'flex flex-col bg-white border-r transition-all duration-300 overflow-hidden',
-      collapsed ? 'w-16' : 'w-64'
+      'flex flex-col bg-zinc-50 transition-all duration-300 overflow-hidden',
+      collapsed ? 'w-12' : 'w-64'
     ]" v-if="showMenu">
 
       <!-- Sidebar Title / App Name -->
-      <div class="h-14 flex items-center px-4 border-b">
+      <div class="h-12 flex items-center px-4">
         <span :class="[
           'font-semibold whitespace-nowrap overflow-hidden transition-all',
           collapsed ? 'opacity-0 w-0' : 'opacity-100 w-full'
@@ -75,9 +75,11 @@ const showMenu = computed(() => {
         </span>
       </div>
 
+      <!-- Collapse Sidebar Button -->
+      <Button icon="pi pi-bars" class="mr-4" severity="secondary" text @click="toggleSidebar" />
       <!-- MAIN NAV MENU -->
       <div class="flex-1 px-2 pt-4">
-        <Menu :model="menuItems" :class="collapsed ? 'p-menu-collapsed' : ''" />
+        <Menu class="bg-zinc-400" :model="menuItems" :class="collapsed ? 'p-menu-collapsed' : ''" />
       </div>
 
       <!-- BOTTOM SETTINGS -->
@@ -91,16 +93,12 @@ const showMenu = computed(() => {
     <div class="flex flex-col flex-1">
 
       <!-- TOP BAR -->
-      <header class="h-14 flex items-center bg-white border-b px-4" v-if="showMenu">
-
-        <!-- Collapse Sidebar Button -->
-        <Button icon="pi pi-bars" class="mr-4" severity="secondary" text @click="toggleSidebar" />
-
-        <h1 class="text-lg font-medium">Top Bar</h1>
+      <header class="h-12 flex items-center bg-zinc-50 px-2" v-if="showMenu">
+        <h1 class="text-lg font-medium m-0">Top Bar</h1>
       </header>
 
       <!-- ROUTER CONTENT -->
-      <main class="flex-1 overflow-auto p-4 bg-gray-50">
+      <main class="flex-1 overflow-auto p-4 bg-zinc-50 rounded-tl-md ring-1 ring-zinc-200">
         <RouterView />
       </main>
 
